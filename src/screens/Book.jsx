@@ -35,7 +35,8 @@ Evaluate David's summary. Respond ONLY with valid JSON, no markdown:
 }
 
 function ChapterList({ store, onSelect }) {
-  const { isChapterDone, completedChapters } = store
+  const isChapterDone = store.isChapterDone || (() => false)
+  const completedChapters = store.completedChapters || store.state?.completedChapters || []
   const nextNum = CHAPTERS.find(c => !isChapterDone(c.num))?.num
 
   return (
