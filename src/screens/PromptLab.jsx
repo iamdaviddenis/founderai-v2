@@ -58,14 +58,17 @@ export default function PromptLab({ store, activeMission }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(null)
 
   async function handleGrade() {
     if (prompt.trim().length < 30) return
     setLoading(true)
     setResult(null)
     setSaved(false)
+    setSaveError(null)
     try {
       const r = await gradePrompt(prompt, mission)
+      if (!r || typeof r.total !== 'number') throw new Error('Invalid response')
       setResult(r)
     } catch {
       setResult({
@@ -82,9 +85,13 @@ export default function PromptLab({ store, activeMission }) {
 
   function handleSave() {
     if (!result || saved) return
-    store.completeMission(mission)
-    store.addPromptHistory({ prompt, score: result.total, completedAt: new Date().toISOString(), missionId: mission.id })
-    setSaved(true)
+    try {
+      store.completeMission(mission)
+      store.addPromptHistory({ prompt, score: result.total, completedAt: new Date().toISOString(), missionId: mission.id })
+      setSaved(true)
+    } catch (e) {
+      setSaveError('Could not save — try again.')
+    }
   }
 
   return (
@@ -191,6 +198,11 @@ export default function PromptLab({ store, activeMission }) {
           )}
 
           <div style={{ padding: '0 16px', marginBottom: 24 }}>
+            {saveError && (
+              <div className="feedback feedback-red" style={{ marginBottom: 10 }}>
+                <div className="feedback-text">{saveError}</div>
+              </div>
+            )}
             {saved ? (
               <div className="feedback feedback-green">
                 <div className="feedback-text">✓ Saved! +{mission.xp} XP earned. Mission complete.</div>
