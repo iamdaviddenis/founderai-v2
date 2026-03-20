@@ -52,23 +52,21 @@ Respond ONLY with valid JSON, no markdown:
   return JSON.parse(raw.replace(/```json|```/g, '').trim())
 }
 
-export default function PromptLab({ store, activeMission }) {
+export default function PromptLab({ store, activeMission, setScreen }) {
   const mission = activeMission || MISSIONS[0]
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [saved, setSaved] = useState(false)
-  const [saveError, setSaveError] = useState(null)
 
   async function handleGrade() {
     if (prompt.trim().length < 30) return
     setLoading(true)
     setResult(null)
     setSaved(false)
-    setSaveError(null)
     try {
       const r = await gradePrompt(prompt, mission)
-      if (!r || typeof r.total !== 'number') throw new Error('Invalid response')
+      if (!r || typeof r.total !== 'number') throw new Error('bad response')
       setResult(r)
     } catch {
       setResult({
@@ -85,13 +83,13 @@ export default function PromptLab({ store, activeMission }) {
 
   function handleSave() {
     if (!result || saved) return
-    try {
+    setSaved(true)
+    // Update store then navigate — don't re-render this screen
+    setTimeout(() => {
       store.completeMission(mission)
       store.addPromptHistory({ prompt, score: result.total, completedAt: new Date().toISOString(), missionId: mission.id })
-      setSaved(true)
-    } catch (e) {
-      setSaveError('Could not save — try again.')
-    }
+      setScreen('progress')
+    }, 300)
   }
 
   return (
@@ -198,14 +196,9 @@ export default function PromptLab({ store, activeMission }) {
           )}
 
           <div style={{ padding: '0 16px', marginBottom: 24 }}>
-            {saveError && (
-              <div className="feedback feedback-red" style={{ marginBottom: 10 }}>
-                <div className="feedback-text">{saveError}</div>
-              </div>
-            )}
             {saved ? (
               <div className="feedback feedback-green">
-                <div className="feedback-text">✓ Saved! +{mission.xp} XP earned. Mission complete.</div>
+                <div className="feedback-text">✓ Saving... taking you to Progress.</div>
               </div>
             ) : (
               <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleSave}>
