@@ -75,7 +75,7 @@ export default function App() {
               />
             )}
             {screen === 'lab' && (
-              <PromptLab store={store} activeMission={activeMission} />
+              <PromptLab store={store} activeMission={activeMission} setScreen={goTo} />
             )}
             {screen === 'book' && (
               <Book store={store} />
