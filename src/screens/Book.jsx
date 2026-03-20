@@ -100,14 +100,17 @@ function ChapterSession({ chapter, store, onBack }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const done = store.isChapterDone(chapter.num)
 
   async function handleCheck() {
     if (summary.trim().length < 60) return
     setLoading(true)
     setResult(null)
+    setSaveError(null)
     try {
       const r = await checkSummary(summary, chapter)
+      if (!r || typeof r.score !== 'number') throw new Error('Invalid response')
       setResult(r)
     } catch {
       setResult({
@@ -125,8 +128,12 @@ function ChapterSession({ chapter, store, onBack }) {
 
   function handleSave() {
     if (saved) return
-    store.completeChapter(chapter, summary)
-    setSaved(true)
+    try {
+      store.completeChapter(chapter, summary)
+      setSaved(true)
+    } catch (e) {
+      setSaveError('Could not save — try again.')
+    }
   }
 
   return (
@@ -241,9 +248,16 @@ function ChapterSession({ chapter, store, onBack }) {
                   <div className="feedback-text">✓ Saved! +{chapter.xp} XP earned. Chapter complete.</div>
                 </div>
               ) : (
-                <button className="btn btn-primary" style={{ width: '100%', marginBottom: 24 }} onClick={handleSave}>
-                  Mark complete · Earn {chapter.xp} XP →
-                </button>
+                <>
+                  {saveError && (
+                    <div className="feedback feedback-red" style={{ marginBottom: 8 }}>
+                      <div className="feedback-text">{saveError}</div>
+                    </div>
+                  )}
+                  <button className="btn btn-primary" style={{ width: '100%', marginBottom: 24 }} onClick={handleSave}>
+                    Mark complete · Earn {chapter.xp} XP →
+                  </button>
+                </>
               )
             )}
           </div>
