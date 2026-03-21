@@ -126,12 +126,9 @@ function ChapterSession({ chapter, store, onBack }) {
 
   function handleSave() {
     if (saved) return
+    store.completeChapter(chapter, summary)
     setSaved(true)
-    // Navigate back first, then update store — prevents unmount crash
-    setTimeout(() => {
-      store.completeChapter(chapter, summary)
-      onBack()
-    }, 300)
+    onBack()
   }
 
   return (
@@ -240,16 +237,10 @@ function ChapterSession({ chapter, store, onBack }) {
               <div className="feedback-text">{result.challenge}</div>
             </div>
 
-            {result.ready && (
-              saved ? (
-                <div className="feedback feedback-green" style={{ marginBottom: 24 }}>
-                  <div className="feedback-text">✓ Saving... taking you back to chapters.</div>
-                </div>
-              ) : (
-                <button className="btn btn-primary" style={{ width: '100%', marginBottom: 24 }} onClick={handleSave}>
-                  Mark complete · Earn {chapter.xp} XP →
-                </button>
-              )
+            {result.ready && !saved && (
+              <button className="btn btn-primary" style={{ width: '100%', marginBottom: 24 }} onClick={handleSave}>
+                Mark complete · Earn {chapter.xp} XP →
+              </button>
             )}
           </div>
         )}
