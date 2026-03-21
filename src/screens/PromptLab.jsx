@@ -83,13 +83,10 @@ export default function PromptLab({ store, activeMission, setScreen }) {
 
   function handleSave() {
     if (!result || saved) return
+    store.completeMission(mission)
+    store.addPromptHistory({ prompt, score: result.total, completedAt: new Date().toISOString(), missionId: mission.id })
     setSaved(true)
-    // Update store then navigate — don't re-render this screen
-    setTimeout(() => {
-      store.completeMission(mission)
-      store.addPromptHistory({ prompt, score: result.total, completedAt: new Date().toISOString(), missionId: mission.id })
-      setScreen('progress')
-    }, 300)
+    setScreen('progress')
   }
 
   return (
@@ -198,7 +195,7 @@ export default function PromptLab({ store, activeMission, setScreen }) {
           <div style={{ padding: '0 16px', marginBottom: 24 }}>
             {saved ? (
               <div className="feedback feedback-green">
-                <div className="feedback-text">✓ Saving... taking you to Progress.</div>
+                <div className="feedback-text">✓ Saved! +{mission.xp} XP earned.</div>
               </div>
             ) : (
               <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleSave}>
