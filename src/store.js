@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 const KEY = 'founderai_v1'
 
@@ -26,16 +26,6 @@ function save(state) {
 export function useStore() {
   const [state, setState] = useState(() => load())
 
-  // Persist on every change
-  useEffect(() => { save(state) }, [state])
-
-  const update = useCallback((patch) => {
-    setState(prev => {
-      const next = typeof patch === 'function' ? patch(prev) : { ...prev, ...patch }
-      return next
-    })
-  }, [])
-
   // ── Computed values ──
   const totalXp = state.xp
   const builtCount = state.completedMissions.length + state.completedChapters.length
@@ -47,48 +37,72 @@ export function useStore() {
   const xpForLevel = level.next - level.minXp
   const xpPct = Math.min(Math.round((xpIntoLevel / xpForLevel) * 100), 100)
 
-  // ── Actions ──
-  function completeMission(mission) {
+  // ── Actions — all stable via useCallback ──
+  const completeMission = useCallback((mission) => {
     const today = todayStr()
-    update(prev => ({
-      xp: prev.xp + mission.xp,
-      completedMissions: [
-        ...prev.completedMissions,
-        { id: mission.id, title: mission.title, xp: mission.xp, cat: mission.cat, completedAt: new Date().toISOString() }
-      ],
-      streakDates: addStreakDate(prev.streakDates, today),
-    }))
-  }
+    setState(prev => {
+      const next = {
+        ...prev,
+        xp: prev.xp + mission.xp,
+        completedMissions: [
+          ...prev.completedMissions,
+          { id: mission.id, title: mission.title, xp: mission.xp, cat: mission.cat, completedAt: new Date().toISOString() }
+        ],
+        streakDates: addStreakDate(prev.streakDates, today),
+      }
+      save(next)
+      return next
+    })
+  }, [])
 
-  function completeChapter(chapter, summary) {
+  const completeChapter = useCallback((chapter, summary) => {
     const today = todayStr()
-    update(prev => ({
-      xp: prev.xp + chapter.xp,
-      completedChapters: [
-        ...prev.completedChapters,
-        { num: chapter.num, title: chapter.title, xp: chapter.xp, completedAt: new Date().toISOString(), summary }
-      ],
-      streakDates: addStreakDate(prev.streakDates, today),
-    }))
-  }
+    setState(prev => {
+      const next = {
+        ...prev,
+        xp: prev.xp + chapter.xp,
+        completedChapters: [
+          ...prev.completedChapters,
+          { num: chapter.num, title: chapter.title, xp: chapter.xp, completedAt: new Date().toISOString(), summary }
+        ],
+        streakDates: addStreakDate(prev.streakDates, today),
+      }
+      save(next)
+      return next
+    })
+  }, [])
 
-  function addPromptHistory(entry) {
-    update(prev => ({
-      promptHistory: [entry, ...prev.promptHistory].slice(0, 50)
-    }))
-  }
+  const addPromptHistory = useCallback((entry) => {
+    setState(prev => {
+      const next = {
+        ...prev,
+        promptHistory: [entry, ...prev.promptHistory].slice(0, 50)
+      }
+      save(next)
+      return next
+    })
+  }, [])
 
-  function setChatHistory(history) {
-    update({ chatHistory: history })
-  }
+  const setChatHistory = useCallback((history) => {
+    setState(prev => {
+      const next = { ...prev, chatHistory: history }
+      save(next)
+      return next
+    })
+  }, [])
 
-  function resetAll() {
+  const resetAll = useCallback(() => {
     setState(DEFAULT_STATE)
     localStorage.removeItem(KEY)
-  }
+  }, [])
 
-  const isMissionDone = (id) => state.completedMissions.some(m => m.id === id)
-  const isChapterDone = (num) => state.completedChapters.some(c => c.num === num)
+  const isMissionDone = useCallback((id) =>
+    state.completedMissions.some(m => m.id === id),
+  [state.completedMissions])
+
+  const isChapterDone = useCallback((num) =>
+    state.completedChapters.some(c => c.num === num),
+  [state.completedChapters])
 
   // Skill breakdown from real data
   const skills = {
